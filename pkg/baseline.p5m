@@ -1,0 +1,20 @@
+set name=pkg.fmri \
+    value=pkg://%PUBLISHER%/system/zones/brand/omicron1/tools@1.0.%COMMIT_COUNT%
+set name=pkg.summary value="Oxide omicron1 brand development tools"
+set name=info.classification \
+    value=org.opensolaris.category.2008:System/Virtualization
+set name=variant.opensolaris.zone value=global value=nonglobal
+dir  path=lib owner=root group=bin mode=0755
+dir  path=lib/svc owner=root group=bin mode=0755
+dir  path=lib/svc/manifest/system owner=root group=sys mode=0755
+dir  path=lib/svc/manifest/system/omicron owner=root group=sys mode=0755
+file path=lib/svc/manifest/system/omicron/baseline.xml owner=root group=sys \
+    mode=0444 restart_fmri=svc:/system/manifest-import:default \
+    variant.opensolaris.zone=global
+dir  path=usr owner=root group=sys mode=0755
+dir  path=usr/lib owner=root group=bin mode=0755
+dir  path=usr/lib/brand owner=root group=bin mode=0755
+dir  path=usr/lib/brand/omicron1 owner=root group=sys mode=0755
+file path=usr/lib/brand/omicron1/baseline owner=root group=bin mode=0755
+depend type=incorporate fmri=pkg:/system/zones/brand/omicron1@1.0.%COMMIT_COUNT%
+depend type=require fmri=pkg:/system/zones/brand/omicron1@1.0.%COMMIT_COUNT%

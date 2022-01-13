@@ -1,0 +1,240 @@
+.Dd December 12, 2021
+.Dt OMICRON1 5
+.Os
+.Sh NAME
+.Nm omicron1
+.Nd zone brand for running Omicron components
+.Sh DESCRIPTION
+The
+.Nm
+brand uses the
+.Xr brands 5
+framework to provide an environment in which to run Omicron components within
+the Oxide Helios ramdisk image.
+Each zone is created from the combination of the libraries and executables on
+the running system, a baseline archive of pristine configuration files, and an
+optional set of image archives provided at install time.
+.Pp
+This brand is intended for use in a ramdisk system where zones are not
+persistent; they are recreated from images as needed each time the system
+boots.
+If persistent data is required, such as for a database server, the zone should
+be provided with a delegated ZFS dataset and the application should be
+configured to store its data within that dataset.
+See
+.Sx "DELEGATING A DATASET" .
+.Sh BASELINE ARCHIVES
+.Ss Production Systems
+In production systems the baseline archive will be generated against the
+ramdisk contents at build time and shipped as a file in the ramdisk itself.
+This work is not yet complete.
+.Ss Development Systems
+For development purposes, a baseline archive can be generated against the
+running system.
+An SMF service,
+.Sy svc:/system/omicron/baseline:default ,
+is provided in the
+.Sy pkg:/system/zones/brand/omicron1/tools
+package, and will generate a baseline archive at boot and store it in
+.Pa /var/run/brand/omicron
+where the brand will look for it when installing a zone with
+.Xr zoneadm 1M .
+.Pp
+The baseline generator makes use of
+.Xr pkg 5
+to assemble the contents of the zone root file system into an archive that can
+be unpacked for each install.
+Once the archive is generated, whether on the development system or in the
+ramdisk, zones can be installed without further interaction with the packaging
+system.
+Any time
+.Xr pkg 1
+is used to update a development system, the contents of any previously
+installed zones is likely invalid and they will need to be uninstalled and
+reinstalled.
+See
+.Sx "LIMITATIONS" .
+.Sh IMAGE ARCHIVES
+An image archive is a gzip-compressed tar file with a specific layout.
+The first file in the archive should be a file with the name
+.Pa oxide.json
+and the following contents:
+.Bd -literal -offset DS
+{"v":"1","t":"layer"}
+.Ed
+.Pp
+This metadata is used by the brand to identify the type of image so that it may
+be unpacked correctly.
+.Pp
+Files to be unpacked into the zone root must be stored within the archive under
+a directory called
+.Pa root .
+A minimal image might contain very few files; e.g.,
+.Bd -literal -offset DS
+$ tar tfz /tmp/someimage.tar.gz
+oxide.json
+root/
+root/var/svc/manifest/site/program1.xml
+root/var/svc/manifest/site/program2.xml
+root/var/svc/profile/site.xml
+root/usr/lib/program1
+root/usr/lib/program2
+.Ed
+.Sh CONFIGURATION
+Zones using the
+.Nm
+brand must have an exclusive IP stack.
+If networking in the zone is required, create a VNIC with
+.Xr dladm 1M
+.Po
+e.g.,
+.Ar testzone0
+below
+.Pc
+and pass it in the zone configuration.
+There is presently no mechanism for automated IP configuration from zone
+properties, though enabling the
+.Sy svc:/network/physical:nwam
+service within the zone will make a best effort attempt at IPv4 and IPv6
+automated configuration.
+.Bd -literal -offset DS
+create
+set brand=omicron1
+set zonepath=/zones/testzone
+set autoboot=false
+set ip-type=exclusive
+add net
+    set physical=testzone0
+end
+.Ed
+.Sh INSTALLATION
+At zone install time, the
+.Nm
+brand unpacks the baseline archive into the zone root to establish a basic
+Helios environment inside the zone.
+Additional files may optionally be layered on top of the base system by
+providing them as arguments to
+.Xr zoneadm 1M
+when installing the zone:
+.Bd -literal -offset DS
+# zoneadm -z testzone0 install /tmp/someimage.tar.gz
+A ZFS file system has been created for this zone.
+INFO: omicron: installing zone testzone @ "/zones/testzone"...
+INFO: omicron: replicating /usr tree...
+INFO: omicron: replicating /lib tree...
+INFO: omicron: replicating /sbin tree...
+INFO: omicron: pruning SMF manifests...
+INFO: omicron: pruning global-only files...
+INFO: omicron: unpacking baseline archive...
+INFO: omicron: unpacking image "/tmp/someimage.tar.gz"...
+INFO: omicron: install complete, probably!
+.Ed
+.Pp
+Note that, as per
+.Sx "LIMITATIONS" ,
+for correct operation each
+.Nm
+zone must be uninstalled and reinstalled any time a development system is
+updated, such as with
+.Xr pkg 1 .
+In a production ramdisk system, this will effectively happen automatically as
+all zone state is discarded each time the system reboots.
+.Sh DELEGATING A DATASET
+One can create a delegated dataset that will automatically mount at
+.Pa /data
+within the zone as follows:
+.Bd -literal -offset DS
+# zfs create -o canmount=noauto rpool/delegated/testzone
+# zfs set mountpoint=/data rpool/delegated/testzone
+# zfs set zoned=on rpool/delegated/testzone
+# zfs set canmount=on rpool/delegated/testzone
+.Ed
+.Pp
+Once this dataset has been created, it can be delegated to the zone via
+.Xr zonecfg 1M :
+.Bd -literal -offset DS
+# zonecfg -z testzone
+zonecfg:testzone> add dataset
+zonecfg:testzone:dataset> set name=rpool/delegated/testzone
+zonecfg:testzone:dataset> end
+zonecfg:testzone> commit
+.Ed
+.Pp
+The dataset will then be mounted at
+.Pa /data
+next time the zone boots.
+Note that the delegated dataset can also be added during initial zone
+configuration, and does not need to be added as a second step.
+.Sh LIMITATIONS
+Various components in the operating system share
+.Sy Private
+interfaces with one another; e.g.,
+the system call interface used by
+.Pa libc.so.1
+and the kernel are subject to change without notice.
+To ensure correct operation such components must always be built together, and
+installed or updated in lock step.
+.Pp
+During zone installation, the
+.Nm
+brand draws baseline files, which include such components with
+.Sy Private
+interfaces, from two sources:
+.Bl -dash
+.It
+Executable and library files in
+.Pa /usr ,
+.Pa /lib ,
+and
+.Pa /sbin ,
+which are copied or symlinked from their source locations on the running system.
+.It
+Seed configuration and data files, such as those in
+.Pa /etc
+and
+.Pa /var ,
+which are unpacked from the baseline archive.
+.El
+.Pp
+The copying and symlinking of contents from trees like
+.Pa /usr
+represents a compromise:
+.Bl -dash
+.It
+It allows us to modify those trees by layering on additional files from images,
+which a read-only
+.Xr lofs 7FS
+mount would not.
+A more complete solution for the future, which would require more
+engineering effort, would be to develop a union or layered file system.
+.It
+It requires us to reinstall the zone any time the contents of
+.Pa /usr ,
+.Pa /lib ,
+or
+.Pa /sbin ,
+change; i.e., any time the operating system is updated.
+This is only a problem on development machines, as production ramdisks are
+sealed at build time and zones will be recreated each time the machine boots.
+.El
+.Pp
+In short: use
+.Xr zoneadm 1M
+to uninstall and reinstall your
+.Nm
+brand zones after updating with
+.Xr pkg 1
+and rebooting.
+.Sh INTERFACE STABILITY
+During early development the brand will continue to evolve, and is thus
+.Sy Uncommitted .
+.Sh SEE ALSO
+.Xr pkg 1 ,
+.Xr dladm 1M ,
+.Xr zfs 1M ,
+.Xr zoneadm 1M ,
+.Xr zonecfg 1M ,
+.Xr brands 5 ,
+.Xr pkg 5 ,
+.Xr zones 5 ,
+.Xr lofs 7FS
