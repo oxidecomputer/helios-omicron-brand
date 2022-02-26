@@ -64,11 +64,14 @@ pub fn pkg_add_property_value<P: AsRef<Path>>(
     }
 }
 
-pub fn pkg_copy_publishers_from<P: AsRef<Path>>(
-    image: Option<P>,
-    w: &str,
-) -> Result<()> {
-    let res = pkg(image, "copy-publishers-from").arg(w).output()?;
+pub fn pkg_copy_publishers_from<P1, P2>(image: Option<P1>, w: P2) -> Result<()>
+where
+    P1: AsRef<Path>,
+    P2: AsRef<Path>,
+{
+    let res = pkg(image, "copy-publishers-from")
+        .arg(w.as_ref())
+        .output()?;
 
     if res.status.success() {
         Ok(())

@@ -43,8 +43,23 @@ fn profile_link(root: &Path, name: &str, target: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    let mut opts = getopts::Options::new();
+    opts.optopt("R", "", "target image", "PATH");
+
+    let mat = opts.parse(std::env::args().skip(1))?;
+
+    if mat.free.len() != 1 {
+        bail!("specify target directory for baseline");
+    }
+
+    let src = if let Some(r) = mat.opt_str("R") {
+        Some(PathBuf::from(r))
+    } else {
+        None
+    };
+
     let dir = {
-        let dir = PathBuf::from(argv(0, "baseline directory")?);
+        let dir = PathBuf::from(&mat.free[0]);
         if dir.is_absolute() {
             dir
         } else {
@@ -60,7 +75,7 @@ fn main() -> Result<()> {
      * In the production build this should be determined from the ramdisk root
      * for which we are generating the baseline archive.
      */
-    let packages = pkg::pkg_list(None::<&str>)?;
+    let packages = pkg::pkg_list(src.as_ref())?;
 
     let incorp = packages
         .iter()
@@ -72,22 +87,46 @@ fn main() -> Result<()> {
             incorp
         );
     }
-    let incorp = incorp[0];
+    println!("incorp = {}", incorp[0]);
 
-    let entire = packages
-        .iter()
-        .filter(|p| p.name() == "entire")
-        .collect::<Vec<_>>();
-    let entire = if entire.len() > 1 {
-        bail!("could not find optional entire package, got {:?}", entire);
-    } else if entire.len() == 1 {
-        entire[0].clone()
+    let mut to_install = vec![incorp[0].clone()];
+
+    if src.is_none() {
+        /*
+         * When operating against a development system, use the "entire"
+         * metapackage for zone base contents.
+         */
+        let entire = packages
+            .iter()
+            .filter(|p| p.name() == "entire")
+            .collect::<Vec<_>>();
+        let entire = if entire.len() > 1 {
+            bail!("could not find optional entire package, got {:?}", entire);
+        } else if entire.len() == 1 {
+            entire[0].clone()
+        } else {
+            ips::Package::new_bare_version("entire", "latest")
+        };
+
+        println!("entire = {}", entire);
+        to_install.push(entire);
     } else {
-        ips::Package::new_bare_version("entire", "latest")
-    };
-
-    println!("incorp = {}", incorp);
-    println!("entire = {}", entire);
+        /*
+         * Otherwise, for ramdisk baseline construction, just use whatever
+         * packages are now installed.
+         */
+        packages
+            .iter()
+            .filter(|p| {
+                p.name() != "entire"
+                    && p.name() != "consolidation/osnet/osnet-incorporation"
+            })
+            .cloned()
+            .for_each(|p| {
+                println!("install = {}", p);
+                to_install.push(p)
+            });
+    }
 
     /*
      * Create a temporary directory in which to assemble the image.
@@ -151,7 +190,16 @@ fn main() -> Result<()> {
      * the baseline file:
      */
     println!("copying publishers...");
-    pkg::pkg_copy_publishers_from(im, "/")?;
+    let tmp;
+    pkg::pkg_copy_publishers_from(
+        im,
+        if let Some(src) = src.as_ref() {
+            src
+        } else {
+            tmp = PathBuf::from("/");
+            &tmp
+        },
+    )?;
 
     /*
      * Tell IPS that we do not wish to include files under /usr, /sbin, or most
@@ -163,7 +211,7 @@ fn main() -> Result<()> {
     }
 
     println!("installing packages...");
-    pkg::pkg_exact_install(im, [incorp, &entire])?;
+    pkg::pkg_exact_install(im, to_install.as_slice())?;
 
     println!("seeding SMF database...");
     let repodb = {

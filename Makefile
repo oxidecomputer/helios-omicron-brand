@@ -73,7 +73,7 @@ $(REPO):
 	pkgrepo add-publisher -s $@ $(PUBLISHER)
 
 .PHONY: archive
-archive: $(PKGDIR)/omicron-brand-1.0.$(COMMIT_COUNT).p5p
+archive: $(PKGDIR)/omicron-brand-1.0.$(COMMIT_COUNT).p5p | $(REPO)
 
 $(PKGDIR)/omicron-brand-1.0.$(COMMIT_COUNT).p5p:
 	@rm -f $@
