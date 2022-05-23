@@ -275,6 +275,7 @@ impl ActionFile {
 
 #[derive(Debug, Clone)]
 pub enum ActionKind {
+    Set(String, Vec<String>),
     Depend(ActionDepend),
     Unknown(String, Vec<String>),
     File(ActionFile),
@@ -507,6 +508,13 @@ pub fn parse_manifest(input: &str) -> Result<Vec<Action>> {
         let variant_imagetype =
             vals.maybe_single("variant.opensolaris.imagetype")?;
         let kind = match a.as_str() {
+            "set" => {
+                let name = vals.single("name")?;
+                let values = vals.list("value")?;
+                vals.check_for_extra()?;
+
+                ActionKind::Set(name, values)
+            }
             "depend" => {
                 let fmri = vals
                     .list("fmri")?

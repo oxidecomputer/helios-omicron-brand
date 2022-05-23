@@ -91,41 +91,76 @@ fn main() -> Result<()> {
 
     let mut to_install = vec![incorp[0].clone()];
 
-    if src.is_none() {
-        /*
-         * When operating against a development system, use the "entire"
-         * metapackage for zone base contents.
-         */
-        let entire = packages
-            .iter()
-            .filter(|p| p.name() == "entire")
-            .collect::<Vec<_>>();
-        let entire = if entire.len() > 1 {
-            bail!("could not find optional entire package, got {:?}", entire);
-        } else if entire.len() == 1 {
-            entire[0].clone()
-        } else {
-            ips::Package::new_bare_version("entire", "latest")
-        };
+    match src.as_deref() {
+        None => {
+            /*
+             * When operating against a development system, use the "entire"
+             * metapackage for zone base contents.
+             */
+            let entire = packages
+                .iter()
+                .filter(|p| p.name() == "entire")
+                .collect::<Vec<_>>();
+            let entire = if entire.len() > 1 {
+                bail!(
+                    "could not find optional entire package, got {:?}",
+                    entire
+                );
+            } else if entire.len() == 1 {
+                entire[0].clone()
+            } else {
+                ips::Package::new_bare_version("entire", "latest")
+            };
 
-        println!("entire = {}", entire);
-        to_install.push(entire);
-    } else {
-        /*
-         * Otherwise, for ramdisk baseline construction, just use whatever
-         * packages are now installed.
-         */
-        packages
-            .iter()
-            .filter(|p| {
-                p.name() != "entire"
-                    && p.name() != "consolidation/osnet/osnet-incorporation"
-            })
-            .cloned()
-            .for_each(|p| {
+            println!("entire = {}", entire);
+            to_install.push(entire);
+        }
+        Some(src) => {
+            /*
+             * Otherwise, for ramdisk baseline construction, just use whatever
+             * packages are now installed.
+             */
+            let contents = packages
+                .iter()
+                .filter(|p| {
+                    p.name() != "entire"
+                        && p.name() != "consolidation/osnet/osnet-incorporation"
+                })
+                .map(|p| {
+                    Ok((p.clone(), pkg::pkg_contents(Some(src), Some(p))?))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            'pkgs: for (p, actions) in contents {
+                for a in actions {
+                    match a.kind() {
+                        ips::ActionKind::Set(name, values) => {
+                            /*
+                             * Packages may be marked for inclusion in a
+                             * particular zone type; i.e., global or non-global.
+                             */
+                            let ngz = if name == "variant.opensolaris.zone" {
+                                values.iter().any(|v| v == "nonglobal")
+                            } else {
+                                /*
+                                 * If there is no marking at all, assume the
+                                 * package is acceptable in a non-global zone.
+                                 */
+                                true
+                            };
+
+                            if !ngz {
+                                println!("skip global-only package = {}", p);
+                                continue 'pkgs;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
                 println!("install = {}", p);
                 to_install.push(p)
-            });
+            }
+        }
     }
 
     /*
