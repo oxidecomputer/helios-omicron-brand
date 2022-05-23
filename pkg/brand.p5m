@@ -17,5 +17,5 @@ file path=usr/lib/brand/omicron1/config.xml owner=root group=bin mode=0444
 file path=usr/lib/brand/omicron1/platform.xml owner=root group=bin mode=0444
 dir  path=usr/share owner=root group=sys mode=0755
 dir  path=usr/share/man owner=root group=bin mode=0755
-dir  path=usr/share/man/man5 owner=root group=bin mode=0755
-file path=usr/share/man/man5/omicron1.5 owner=root group=bin mode=0444
+dir  path=usr/share/man/man7 owner=root group=bin mode=0755
+file path=usr/share/man/man7/omicron1.7 owner=root group=bin mode=0444

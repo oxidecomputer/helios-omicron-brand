@@ -1,5 +1,5 @@
 .Dd December 12, 2021
-.Dt OMICRON1 5
+.Dt OMICRON1 7
 .Os
 .Sh NAME
 .Nm omicron1
@@ -8,7 +8,7 @@
 The
 .Nm
 brand uses the
-.Xr brands 5
+.Xr brands 7
 framework to provide an environment in which to run Omicron components within
 the Oxide Helios ramdisk image.
 Each zone is created from the combination of the libraries and executables on
@@ -38,10 +38,10 @@ is provided in the
 package, and will generate a baseline archive at boot and store it in
 .Pa /var/run/brand/omicron
 where the brand will look for it when installing a zone with
-.Xr zoneadm 1M .
+.Xr zoneadm 8 .
 .Pp
 The baseline generator makes use of
-.Xr pkg 5
+.Xr pkg 7
 to assemble the contents of the zone root file system into an archive that can
 be unpacked for each install.
 Once the archive is generated, whether on the development system or in the
@@ -85,7 +85,7 @@ Zones using the
 .Nm
 brand must have an exclusive IP stack.
 If networking in the zone is required, create a VNIC with
-.Xr dladm 1M
+.Xr dladm 8
 .Po
 e.g.,
 .Ar testzone0
@@ -114,7 +114,7 @@ brand unpacks the baseline archive into the zone root to establish a basic
 Helios environment inside the zone.
 Additional files may optionally be layered on top of the base system by
 providing them as arguments to
-.Xr zoneadm 1M
+.Xr zoneadm 8
 when installing the zone:
 .Bd -literal -offset DS
 # zoneadm -z testzone0 install /tmp/someimage.tar.gz
@@ -151,7 +151,7 @@ within the zone as follows:
 .Ed
 .Pp
 Once this dataset has been created, it can be delegated to the zone via
-.Xr zonecfg 1M :
+.Xr zonecfg 8 :
 .Bd -literal -offset DS
 # zonecfg -z testzone
 zonecfg:testzone> add dataset
@@ -203,7 +203,7 @@ represents a compromise:
 .It
 It allows us to modify those trees by layering on additional files from images,
 which a read-only
-.Xr lofs 7FS
+.Xr lofs 4FS
 mount would not.
 A more complete solution for the future, which would require more
 engineering effort, would be to develop a union or layered file system.
@@ -219,7 +219,7 @@ sealed at build time and zones will be recreated each time the machine boots.
 .El
 .Pp
 In short: use
-.Xr zoneadm 1M
+.Xr zoneadm 8
 to uninstall and reinstall your
 .Nm
 brand zones after updating with
@@ -230,11 +230,11 @@ During early development the brand will continue to evolve, and is thus
 .Sy Uncommitted .
 .Sh SEE ALSO
 .Xr pkg 1 ,
-.Xr dladm 1M ,
-.Xr zfs 1M ,
-.Xr zoneadm 1M ,
-.Xr zonecfg 1M ,
-.Xr brands 5 ,
-.Xr pkg 5 ,
-.Xr zones 5 ,
-.Xr lofs 7FS
+.Xr dladm 8 ,
+.Xr zfs 8 ,
+.Xr zoneadm 8 ,
+.Xr zonecfg 8 ,
+.Xr brands 7 ,
+.Xr pkg 7 ,
+.Xr zones 7 ,
+.Xr lofs 4FS

@@ -8,11 +8,11 @@ REPO =		$(PKGDIR)/repo
 
 BRAND =		omicron1
 BRANDDIR =	usr/lib/brand/$(BRAND)
-MAN5DIR =	usr/share/man/man5
+MAN7DIR =	usr/share/man/man7
 SMFDIR =	lib/svc/manifest/system/omicron
 
 DIRS_0 =	$(BRANDDIR) \
-		$(MAN5DIR) \
+		$(MAN7DIR) \
 		$(SMFDIR)
 DIRS =		$(DIRS_0:%=$(PROTO)/%)
 
@@ -23,8 +23,8 @@ BINS_0 =	baseline \
 		brand
 BINS =		$(BINS_0:%=$(PROTO)/$(BRANDDIR)/%)
 
-MAN5_0 =	$(BRAND).5
-MAN5 =		$(MAN5_0:%=$(PROTO)/$(MAN5DIR)/%)
+MAN7_0 =	$(BRAND).7
+MAN7 =		$(MAN7_0:%=$(PROTO)/$(MAN7DIR)/%)
 
 XML_0 =		config.xml \
 		platform.xml
@@ -37,7 +37,7 @@ PACKAGES =	$(PACKAGES_0:%=pkg.%)
 COMMIT_COUNT =	$(shell git rev-list --count HEAD)
 
 .PHONY: all
-all: $(DIRS) $(BINS) $(MAN5) $(SMF) $(XML)
+all: $(DIRS) $(BINS) $(MAN7) $(SMF) $(XML)
 
 .PHONY: package
 package: all $(PKGDIR) $(PACKAGES)
@@ -79,7 +79,7 @@ $(PKGDIR)/omicron-brand-1.0.$(COMMIT_COUNT).p5p:
 	@rm -f $@
 	pkgrecv -a -d $@ -s $(REPO) -v -m latest '*'
 
-$(PROTO)/$(MAN5DIR)/%: man/%
+$(PROTO)/$(MAN7DIR)/%: man/%
 	@rm -f $@
 	cp $< $@
 
@@ -107,7 +107,7 @@ readme:
 	    /MANUAL START/ {						\
 	        q = 1;							\
 	        printf("```\n");					\
-	        system("mandoc -T utf8 -O width=72 man/omicron1.5 |	\
+	        system("mandoc -T utf8 -O width=72 man/omicron1.7 |	\
 	            col -bx");						\
 	        printf("```\n");					\
 	        next;							\

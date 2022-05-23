@@ -4,13 +4,13 @@ This repository contains the `omicron1` zone brand for Helios.
 
 <!-- MANUAL START -->
 ```
-OMICRON1(5)        Standards, Environments, and Macros       OMICRON1(5)
+OMICRON1(7)        Standards, Environments, and Macros       OMICRON1(7)
 
 NAME
      omicron1 – zone brand for running Omicron components
 
 DESCRIPTION
-     The omicron1 brand uses the brands(5) framework to provide an
+     The omicron1 brand uses the brands(7) framework to provide an
      environment in which to run Omicron components within the Oxide
      Helios ramdisk image.  Each zone is created from the combination of
      the libraries and executables on the running system, a baseline
@@ -37,9 +37,9 @@ BASELINE ARCHIVES
      pkg:/system/zones/brand/omicron1/tools package, and will generate a
      baseline archive at boot and store it in /var/run/brand/omicron
      where the brand will look for it when installing a zone with
-     zoneadm(1M).
+     zoneadm(8).
 
-     The baseline generator makes use of pkg(5) to assemble the contents
+     The baseline generator makes use of pkg(7) to assemble the contents
      of the zone root file system into an archive that can be unpacked
      for each install.  Once the archive is generated, whether on the
      development system or in the ramdisk, zones can be installed
@@ -73,7 +73,7 @@ IMAGE ARCHIVES
 
 CONFIGURATION
      Zones using the omicron1 brand must have an exclusive IP stack.  If
-     networking in the zone is required, create a VNIC with dladm(1M)
+     networking in the zone is required, create a VNIC with dladm(8)
      (e.g., testzone0 below) and pass it in the zone configuration.
      There is presently no mechanism for automated IP configuration from
      zone properties, though enabling the svc:/network/physical:nwam
@@ -93,7 +93,7 @@ INSTALLATION
      At zone install time, the omicron1 brand unpacks the baseline
      archive into the zone root to establish a basic Helios environment
      inside the zone.  Additional files may optionally be layered on top
-     of the base system by providing them as arguments to zoneadm(1M)
+     of the base system by providing them as arguments to zoneadm(8)
      when installing the zone:
 
        # zoneadm -z testzone0 install /tmp/someimage.tar.gz
@@ -124,7 +124,7 @@ DELEGATING A DATASET
        # zfs set canmount=on rpool/delegated/testzone
 
      Once this dataset has been created, it can be delegated to the zone
-     via zonecfg(1M):
+     via zonecfg(8):
 
        # zonecfg -z testzone
        zonecfg:testzone> add dataset
@@ -158,7 +158,7 @@ LIMITATIONS
      represents a compromise:
 
      -   It allows us to modify those trees by layering on additional
-         files from images, which a read-only lofs(7FS) mount would not.
+         files from images, which a read-only lofs(4FS) mount would not.
          A more complete solution for the future, which would require
          more engineering effort, would be to develop a union or layered
          file system.
@@ -169,7 +169,7 @@ LIMITATIONS
          machines, as production ramdisks are sealed at build time and
          zones will be recreated each time the machine boots.
 
-     In short: use zoneadm(1M) to uninstall and reinstall your omicron1
+     In short: use zoneadm(8) to uninstall and reinstall your omicron1
      brand zones after updating with pkg(1) and rebooting.
 
 INTERFACE STABILITY
@@ -177,8 +177,8 @@ INTERFACE STABILITY
      thus Uncommitted.
 
 SEE ALSO
-     pkg(1), dladm(1M), zfs(1M), zoneadm(1M), zonecfg(1M), brands(5),
-     pkg(5), zones(5), lofs(7FS)
+     pkg(1), dladm(8), zfs(8), zoneadm(8), zonecfg(8), brands(7),
+     pkg(7), zones(7), lofs(4FS)
 
 illumos                     December 12, 2021                    illumos
 ```
