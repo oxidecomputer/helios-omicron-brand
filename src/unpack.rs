@@ -116,7 +116,7 @@ impl Unpack {
         let mut ents = tar.entries()?;
         while let Some(mut ent) = ents.next().transpose()? {
             let h = ent.header();
-            let p = h.path()?;
+            let p = ent.path()?;
 
             let mode = h.mode()?;
             let uid = h.uid()? as u32;
@@ -126,9 +126,7 @@ impl Unpack {
                 continue;
             }
 
-            let target =
-                crate::tree::reprefix(&root_prefix, &ent.path()?, outdir)?;
-
+            let target = crate::tree::reprefix(&root_prefix, &p, outdir)?;
             let md = lstat(&target)?;
 
             match h.entry_type() {
