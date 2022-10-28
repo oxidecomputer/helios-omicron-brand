@@ -127,7 +127,7 @@ impl Unpack {
             }
 
             let target =
-                crate::tree::reprefix(&root_prefix, &h.path()?, outdir)?;
+                crate::tree::reprefix(&root_prefix, &ent.path()?, outdir)?;
 
             let md = lstat(&target)?;
 
