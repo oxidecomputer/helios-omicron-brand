@@ -114,6 +114,26 @@ fn main() -> Result<()> {
 
             println!("entire = {}", entire);
             to_install.push(entire);
+
+            /*
+             * We need the SSH server in the switch zone for wicket.  In the
+             * ramdisk environment this comes along for the ride in the image
+             * templates we are presently using, even though it is otherwise
+             * optional in the entire metapackage.
+             *
+             * Until zone image construction more completely interacts with the
+             * packaging system in order to request specific chunks of software
+             * for inclusion in the image itself, we will include it in the
+             * baseline.
+             */
+            packages
+                .iter()
+                .filter(|p| p.name() == "network/openssh-server")
+                .cloned()
+                .for_each(|p| {
+                    println!("install = {}", p);
+                    to_install.push(p)
+                });
         }
         Some(src) => {
             /*
