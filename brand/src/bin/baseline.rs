@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use anyhow::{anyhow, bail, Context, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -6,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use common::*;
+use helios_build_utils::*;
 use helios_omicron_brand::*;
 
 /**
@@ -16,7 +21,7 @@ fn maybe_unlink(f: &Path) -> Result<()> {
     match std::fs::remove_file(f) {
         Ok(_) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(e) => bail!("could not remove {:?}: {:?}", f, e),
+        Err(e) => bail!("could not remove {f:?}: {e:?}"),
     }
 }
 
@@ -32,12 +37,12 @@ fn profile_link(root: &Path, name: &str, target: &str) -> Result<()> {
         f.push("etc");
         f.push("svc");
         f.push("profile");
-        f.push(&format!("{}.xml", name));
+        f.push(&format!("{name}.xml"));
         f
     };
 
     maybe_unlink(&name)?;
-    std::os::unix::fs::symlink(&format!("{}.xml", target), &name)?;
+    std::os::unix::fs::symlink(format!("{target}.xml"), &name)?;
 
     Ok(())
 }
@@ -52,11 +57,7 @@ fn main() -> Result<()> {
         bail!("specify target directory for baseline");
     }
 
-    let src = if let Some(r) = mat.opt_str("R") {
-        Some(PathBuf::from(r))
-    } else {
-        None
-    };
+    let src = mat.opt_str("R").map(PathBuf::from);
 
     let dir = {
         let dir = PathBuf::from(&mat.free[0]);
@@ -112,7 +113,7 @@ fn main() -> Result<()> {
                 ips::Package::new_bare_version("entire", "latest")
             };
 
-            println!("entire = {}", entire);
+            println!("entire = {entire}");
             to_install.push(entire);
 
             /*
@@ -131,7 +132,7 @@ fn main() -> Result<()> {
                 .filter(|p| p.name() == "network/openssh-server")
                 .cloned()
                 .for_each(|p| {
-                    println!("install = {}", p);
+                    println!("install = {p}");
                     to_install.push(p)
                 });
         }
@@ -152,32 +153,29 @@ fn main() -> Result<()> {
                 .collect::<Result<Vec<_>>>()?;
             'pkgs: for (p, actions) in contents {
                 for a in actions {
-                    match a.kind() {
-                        ips::ActionKind::Set(name, values) => {
+                    if let ips::ActionKind::Set(name, values) = a.kind() {
+                        /*
+                         * Packages may be marked for inclusion in a particular
+                         * zone type; i.e., global or non-global.
+                         */
+                        let ngz = if name == "variant.opensolaris.zone" {
+                            values.iter().any(|v| v == "nonglobal")
+                        } else {
                             /*
-                             * Packages may be marked for inclusion in a
-                             * particular zone type; i.e., global or non-global.
+                             * If there is no marking at all, assume the package
+                             * is acceptable in a non-global zone.
                              */
-                            let ngz = if name == "variant.opensolaris.zone" {
-                                values.iter().any(|v| v == "nonglobal")
-                            } else {
-                                /*
-                                 * If there is no marking at all, assume the
-                                 * package is acceptable in a non-global zone.
-                                 */
-                                true
-                            };
+                            true
+                        };
 
-                            if !ngz {
-                                println!("skip global-only package = {}", p);
-                                continue 'pkgs;
-                            }
+                        if !ngz {
+                            println!("skip global-only package = {p}");
+                            continue 'pkgs;
                         }
-                        _ => {}
                     }
                 }
 
-                println!("install = {}", p);
+                println!("install = {p}");
                 to_install.push(p)
             }
         }
@@ -198,7 +196,7 @@ fn main() -> Result<()> {
         std::fs::DirBuilder::new().mode(0o700).create(&tmp)?;
         tmp
     };
-    println!("tempdir @ {:?}", tmp);
+    println!("tempdir @ {tmp:?}");
 
     /*
      * Currently pkg(1) seems to engage in some poorly considered behaviour.  It
@@ -321,7 +319,7 @@ fn main() -> Result<()> {
             .truncate(true)
             .write(true)
             .open(&our_profile)?;
-        writeln!(f, "{}", include_str!("../../config/profile.xml"))?;
+        writeln!(f, "{}", include_str!("../../../config/profile.xml"))?;
         f.flush()?;
         f.sync_all()?;
     }
@@ -622,7 +620,7 @@ fn main() -> Result<()> {
                     h.set_uid(passwd.lookup_by_name("root")?);
                     h.set_groupname("root")?;
                     h.set_gid(group.lookup_by_name("root")?);
-                    h.set_link_name(&target)?;
+                    h.set_link_name(target)?;
                     h.set_path(&archivepath)?;
                     h.set_cksum();
                     tar_symlinks.insert(p.clone(), h);
@@ -658,7 +656,7 @@ fn main() -> Result<()> {
              * The package metadata does not describe this file.  We'll need to
              * fabricate permissions for it.
              */
-            println!("    {:?}", p);
+            println!("    {p:?}");
 
             match et {
                 EntryType::Dir => {
@@ -694,7 +692,7 @@ fn main() -> Result<()> {
                     h.set_uid(passwd.lookup_by_name("root")?);
                     h.set_groupname("root")?;
                     h.set_gid(group.lookup_by_name("root")?);
-                    h.set_link_name(&target)?;
+                    h.set_link_name(target)?;
                     h.set_path(&archivepath)?;
                     h.set_cksum();
                     tar_symlinks.insert(p.clone(), h);
@@ -730,7 +728,7 @@ fn main() -> Result<()> {
                 println!("missing from file system:");
                 header = true;
             }
-            println!("    {:?}", p);
+            println!("    {p:?}");
             fail = true;
         }
     }
@@ -787,7 +785,7 @@ fn main() -> Result<()> {
         }
 
         if !gzonly_false.contains(p) {
-            writeln!(f, "{}", p)?;
+            writeln!(f, "{p}")?;
         }
     }
     f.flush()?;

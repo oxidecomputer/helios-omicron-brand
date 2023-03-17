@@ -1,9 +1,14 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use common::*;
 use helios_omicron_brand::*;
+use helios_build_utils::*;
 
 const PKG: &str = "/usr/bin/pkg";
 
@@ -103,7 +108,7 @@ fn pkg_all_files<P: AsRef<Path>>(image: P) -> Result<Vec<ImageFile>> {
         let mut out = Vec::new();
         for t in lines {
             if t.len() != 7 {
-                bail!("weird line {:?}", t);
+                bail!("weird line {t:?}");
             }
 
             let details = match t[0] {
@@ -138,13 +143,13 @@ fn pkg_all_files<P: AsRef<Path>>(image: P) -> Result<Vec<ImageFile>> {
 fn main() -> Result<()> {
     let zi = PathBuf::from(argv(0, "zone image path")?);
 
-    println!("zone image @ {:?}", zi);
+    println!("zone image @ {zi:?}");
 
     /*
      * Get a list of all packages installed in the zone image:
      */
     let list = pkg_list(&zi)?;
-    println!("list = {:#?}", list);
+    println!("list = {list:#?}");
 
     /*
      * Find the osnet-incorporation, which we will use to exclude ramdisk

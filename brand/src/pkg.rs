@@ -3,7 +3,7 @@ use std::process::Command;
 
 use anyhow::{bail, Result};
 
-use super::ips;
+use helios_build_utils::ips;
 
 const PKG: &str = "/usr/bin/pkg";
 

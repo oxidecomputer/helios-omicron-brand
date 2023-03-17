@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use std::io::{Read, Write};
 use std::os::unix::fs::DirBuilderExt;
 use std::path::PathBuf;
@@ -6,6 +10,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, bail, Result};
 
 use helios_omicron_brand::*;
+use helios_build_utils::*;
 
 #[allow(unused)]
 mod ids {
@@ -127,7 +132,7 @@ fn cmd_prestate(
     let mp = args.next().map(PathBuf::from);
 
     if s.debug {
-        println!("INFO: prestate {:?} {:?} {:?}", ps, pc, mp);
+        println!("INFO: prestate {ps:?} {pc:?} {mp:?}");
     }
 
     Ok(())
@@ -142,7 +147,7 @@ fn cmd_poststate(
     let mp = args.next().map(PathBuf::from);
 
     if s.debug {
-        println!("INFO: poststate {:?} {:?} {:?}", ps, pc, mp);
+        println!("INFO: poststate {ps:?} {pc:?} {mp:?}");
     }
 
     Ok(())
@@ -197,13 +202,13 @@ fn cmd_verify_cfg(args: &mut dyn Iterator<Item = &String>) -> Result<()> {
     let xmlpath = PathBuf::from(&mat.free[0]);
 
     if debug_from_env() {
-        println!("XML file @ {:?}", xmlpath);
+        println!("XML file @ {xmlpath:?}");
 
         let mut f = std::fs::File::open(&xmlpath)?;
         let mut s = String::new();
         f.read_to_string(&mut s)?;
         for l in s.lines() {
-            println!("  | {}", l);
+            println!("  | {l}");
         }
     }
 
@@ -249,12 +254,12 @@ fn cmd_install(
     //  }
 
     for repl in ["usr", "lib", "sbin"] {
-        let tree = format!("/{}", repl);
-        println!("INFO: omicron: replicating {} tree...", tree);
+        let tree = format!("/{repl}");
+        println!("INFO: omicron: replicating {tree} tree...");
         let dir = s.zonerootpath(&[repl]);
         std::fs::DirBuilder::new().mode(0o755).create(&dir)?;
         unix::lchown(&dir, ROOT, SYS)?;
-        tree::replicate(&tree, &dir, &format!("/system/{}", repl))?;
+        tree::replicate(&tree, &dir, &format!("/system/{repl}"))?;
     }
 
     {
@@ -276,16 +281,16 @@ fn cmd_install(
         let mut rm = root.clone();
         let rel = PathBuf::from(l);
         if rel.is_absolute() {
-            bail!("absolute path in baseline remove list: {:?}", rel);
+            bail!("absolute path in baseline remove list: {rel:?}");
         }
         rm.push(rel);
 
         if let Err(e) = std::fs::remove_file(&rm) {
             if e.kind() != std::io::ErrorKind::NotFound {
-                bail!("removing {:?}: {:?}", &rm, e);
+                bail!("removing {rm:?}: {e:?}");
             }
         } else if s.debug {
-            println!("removed GZ-only file: {:?}", &rm);
+            println!("removed GZ-only file: {rm:?}");
         }
     }
 
@@ -304,7 +309,7 @@ fn cmd_install(
      * Unpack any additional archives that were passed on the command line:
      */
     for extra in mat.free {
-        println!("INFO: omicron: unpacking image {:?}...", extra);
+        println!("INFO: omicron: unpacking image {extra:?}...");
         let mut extra = unpack::Unpack::load(&extra)?;
         if !extra.metadata().is_layer() {
             bail!("image is not a layer");

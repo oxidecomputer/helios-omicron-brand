@@ -84,12 +84,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "helios-build-utils"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "tar",
+ "walkdir",
+]
+
+[[package]]
 name = "helios-omicron-brand"
 version = "0.0.0"
 dependencies = [
  "anyhow",
  "flate2",
  "getopts",
+ "helios-build-utils",
  "libc",
  "serde",
  "serde_json",

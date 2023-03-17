@@ -4,7 +4,7 @@ use std::io::{Read, Seek};
 use std::os::unix::prelude::*;
 use std::path::{Path, PathBuf};
 
-use crate::metadata;
+use helios_build_utils::{metadata, tree};
 
 pub struct Unpack {
     gz: Option<flate2::read::GzDecoder<std::fs::File>>,
@@ -63,7 +63,7 @@ impl Unpack {
 
             File::open(&self.archive)?
         };
-        f.seek(std::io::SeekFrom::Start(0))?;
+        f.rewind()?;
         self.gz = Some(flate2::read::GzDecoder::new(f));
         Ok(tar::Archive::new(self.gz.as_mut().unwrap()))
     }
@@ -108,7 +108,7 @@ impl Unpack {
         let mut tar = self.open_tar()?;
 
         if !outdir.exists() {
-            std::fs::create_dir(&outdir)?;
+            std::fs::create_dir(outdir)?;
         }
 
         let root_prefix = PathBuf::from("root");
@@ -126,7 +126,7 @@ impl Unpack {
                 continue;
             }
 
-            let target = crate::tree::reprefix(&root_prefix, &p, outdir)?;
+            let target = tree::reprefix(&root_prefix, &p, outdir)?;
             let md = lstat(&target)?;
 
             match h.entry_type() {
@@ -205,7 +205,7 @@ impl Unpack {
                     (false, false)
                 }
                 tar::EntryType::Link => {
-                    let linktarget = crate::tree::reprefix(
+                    let linktarget = tree::reprefix(
                         &root_prefix,
                         &ent.link_name()?.unwrap(),
                         outdir,

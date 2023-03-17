@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use anyhow::{anyhow, bail, Context, Result};
 use std::path::{Path, PathBuf};
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use anyhow::{bail, Result};
 use std::collections::BTreeSet;
 use std::convert::{TryFrom, TryInto};
@@ -15,13 +19,13 @@ impl Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "pkg:/")?;
         if let Some(p) = &self.publisher {
-            write!(f, "/{}/", p)?;
+            write!(f, "/{p}/")?;
         }
         write!(f, "{}", self.name)?;
         if let Some(v) = &self.version {
-            write!(f, "@{}", v)?;
+            write!(f, "@{v}")?;
             if let Some(d) = &self.date {
-                write!(f, ":{}", d)?;
+                write!(f, ":{d}")?;
             }
         }
         Ok(())
@@ -179,7 +183,7 @@ impl Display for DependType {
             DependType::Optional => "optional",
             DependType::Conditional => "conditional",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
