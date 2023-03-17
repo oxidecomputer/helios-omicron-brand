@@ -304,7 +304,7 @@ fn main() -> Result<()> {
          *
          * If an image wants to further customise the default SMF posture, they
          * can provide a "/var/svc/profile/site.xml" file that will be processed
-         * last; see smf_bootstrap(5).
+         * last; see smf_bootstrap(7).
          */
         let our_profile = {
             let mut f = root.clone();
@@ -332,7 +332,7 @@ fn main() -> Result<()> {
      * Make the root account a no-password account; viz., one that will not
      * allow any password-based logins.
      */
-    println!("modifying shadow(4)...");
+    println!("modifying shadow(5)...");
     let shadowf = {
         let mut f = root.clone();
         f.push("etc");
@@ -345,7 +345,7 @@ fn main() -> Result<()> {
     shadow.store(&shadowf)?;
 
     /*
-     * The passwd(4) and group(4) databases have been populated by installed
+     * The passwd(5) and group(5) databases have been populated by installed
      * packages.  Load them from the image so that we can translate user and
      * group names into user and group IDs that will make sense in the installed
      * environment.
