@@ -9,8 +9,8 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Result};
 
-use helios_omicron_brand::*;
 use helios_build_utils::*;
+use helios_omicron_brand::*;
 
 #[allow(unused)]
 mod ids {

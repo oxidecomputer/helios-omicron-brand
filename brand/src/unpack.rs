@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use std::fs::File;
 use std::io::{Read, Seek};
 use std::os::unix::prelude::*;
@@ -33,13 +33,8 @@ impl Unpack {
             archive,
             opened: false,
         };
-        u.load_metadata()?;
-
-        let v = u.metadata.as_ref().unwrap().v.as_str();
-
-        if v != "1" {
-            bail!("archive {:?} version {:?} not supported", u.archive, v);
-        }
+        u.load_metadata()
+            .map_err(|e| anyhow!("loading archive {:?}: {e:?}", &u.archive))?;
 
         Ok(u)
     }

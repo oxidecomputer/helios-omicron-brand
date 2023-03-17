@@ -476,24 +476,9 @@ fn main() -> Result<()> {
      * archive.  This file will not be extracted into the file system, but will
      * be read when inspecting the image to see if we understand the format.
      */
-    {
-        metadata::Metadata {
-            v: "1".to_string(),
-            t: metadata::ArchiveType::Baseline,
-        }
+    metadata::MetadataBuilder::new(metadata::ArchiveType::Baseline)
+        .build()?
         .append_to_tar(&mut tar)?;
-
-        // let mut h = tar::Header::new_ustar();
-        // h.set_username("root")?;
-        // h.set_uid(0);
-        // h.set_groupname("root")?;
-        // h.set_gid(0);
-        // h.set_path("oxide.json")?;
-        // h.set_mode(0o444);
-        // h.set_size(metadata.len().try_into().unwrap());
-        // h.set_cksum();
-        // tar.append(&h, metadata.as_slice())?;
-    }
 
     let mut found: BTreeMap<PathBuf, EntryType> = Default::default();
     let mut walk = walkdir::WalkDir::new(&root).min_depth(1).into_iter();

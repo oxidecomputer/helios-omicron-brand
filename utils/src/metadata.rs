@@ -2,24 +2,36 @@
  * Copyright 2023 Oxide Computer Company
  */
 
-use anyhow::Result;
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchiveType {
     Baseline,
     Layer,
+    Os,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Metadata {
-    pub v: String,
-    pub t: ArchiveType,
+    v: String,
+    t: ArchiveType,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    i: HashMap<String, String>,
 }
 
 pub fn parse(s: &str) -> Result<Metadata> {
-    Ok(serde_json::from_str(s)?)
+    let m: Metadata = serde_json::from_str(s)?;
+    if m.v != "1" {
+        bail!("unexpected metadata version {}", m.v);
+    }
+    Ok(m)
 }
 
 impl Metadata {
@@ -27,9 +39,16 @@ impl Metadata {
         &self,
         a: &mut tar::Builder<T>,
     ) -> Result<()> {
-        let b = serde_json::to_vec(self)?;
+        let mut b = serde_json::to_vec(self)?;
+        b.push(b'\n');
+
+        let mtime = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
 
         let mut h = tar::Header::new_ustar();
+        h.set_entry_type(tar::EntryType::Regular);
         h.set_username("root")?;
         h.set_uid(0);
         h.set_groupname("root")?;
@@ -37,6 +56,7 @@ impl Metadata {
         h.set_path("oxide.json")?;
         h.set_mode(0o444);
         h.set_size(b.len().try_into().unwrap());
+        h.set_mtime(mtime);
         h.set_cksum();
 
         a.append(&h, b.as_slice())?;
@@ -49,5 +69,51 @@ impl Metadata {
 
     pub fn is_baseline(&self) -> bool {
         matches!(&self.t, ArchiveType::Baseline)
+    }
+
+    pub fn is_os(&self) -> bool {
+        matches!(&self.t, ArchiveType::Os)
+    }
+
+    pub fn archive_type(&self) -> ArchiveType {
+        self.t
+    }
+
+    pub fn info(&self) -> &HashMap<String, String> {
+        &self.i
+    }
+}
+
+pub struct MetadataBuilder {
+    archive_type: ArchiveType,
+    info: HashMap<String, String>,
+}
+
+impl MetadataBuilder {
+    pub fn new(archive_type: ArchiveType) -> MetadataBuilder {
+        MetadataBuilder {
+            archive_type,
+            info: Default::default(),
+        }
+    }
+
+    pub fn info(
+        &mut self,
+        name: &str,
+        value: &str,
+    ) -> Result<&mut MetadataBuilder> {
+        if name.len() < 3 {
+            bail!("info property names must be at least three characters");
+        }
+        self.info.insert(name.to_string(), value.to_string());
+        Ok(self)
+    }
+
+    pub fn build(&mut self) -> Result<Metadata> {
+        Ok(Metadata {
+            v: "1".into(),
+            t: self.archive_type,
+            i: self.info.clone(),
+        })
     }
 }

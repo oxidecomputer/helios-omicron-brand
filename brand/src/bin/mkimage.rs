@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use common::*;
-use helios_omicron_brand::*;
 use helios_build_utils::*;
+use helios_omicron_brand::*;
 
 const PKG: &str = "/usr/bin/pkg";
 

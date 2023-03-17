@@ -96,7 +96,7 @@ $(DIRS) $(PKGDIR):
 
 .PHONY: $(BINS)
 $(BINS): | $(DIRS)
-	cargo build --release
+	cargo build --release --locked
 	cp target/release/$(@F) $@
 
 .PHONY: readme
