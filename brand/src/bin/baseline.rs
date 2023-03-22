@@ -8,6 +8,7 @@ use std::io::Write;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
 
 use common::*;
 use helios_build_utils::*;
@@ -50,6 +51,7 @@ fn profile_link(root: &Path, name: &str, target: &str) -> Result<()> {
 fn main() -> Result<()> {
     let mut opts = getopts::Options::new();
     opts.optopt("R", "", "target image", "PATH");
+    opts.optflag("w", "", "wait for IPS repositories to be contactable");
 
     let mat = opts.parse(std::env::args().skip(1))?;
 
@@ -58,6 +60,34 @@ fn main() -> Result<()> {
     }
 
     let src = mat.opt_str("R").map(PathBuf::from);
+
+    if mat.opt_present("w") {
+        /*
+         * Some systems use dynamic mechanisms for network addressing and
+         * routing (e.g., DHCP, VPNs, etc).  Those can take a while to come
+         * online.  If we have been asked to wait, just keep trying to refresh
+         * the IPS catalogues before we get moving.
+         */
+        let mut waited = false;
+        loop {
+            match pkg::pkg_refresh(pkg::ROOT_IMAGE) {
+                Ok(_) => break,
+                Err(e) => {
+                    if !waited {
+                        println!("WARNING: while refreshing packages: {e}");
+                        println!("waiting for package repositories...");
+                        waited = true;
+                    }
+
+                    std::thread::sleep(Duration::from_secs(5));
+                }
+            }
+        }
+
+        if waited {
+            println!("package repositories are now available!");
+        }
+    }
 
     let dir = {
         let dir = PathBuf::from(&mat.free[0]);

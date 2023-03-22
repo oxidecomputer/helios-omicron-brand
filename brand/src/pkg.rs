@@ -5,6 +5,8 @@ use anyhow::{bail, Result};
 
 use helios_build_utils::ips;
 
+pub const ROOT_IMAGE: Option<&Path> = None;
+
 const PKG: &str = "/usr/bin/pkg";
 
 fn pkg<P: AsRef<Path>>(image: Option<P>, subcmd: &str) -> Command {
@@ -95,6 +97,19 @@ pub fn pkg_image_create<P: AsRef<Path>>(image: P) -> Result<()> {
     } else {
         bail!(
             "pkg image-create error: {:?}",
+            String::from_utf8_lossy(&res.stderr).trim()
+        );
+    }
+}
+
+pub fn pkg_refresh<P: AsRef<Path>>(image: Option<P>) -> Result<()> {
+    let res = pkg(image, "refresh").output()?;
+
+    if res.status.success() {
+        Ok(())
+    } else {
+        bail!(
+            "pkg refresh error: {:?}",
             String::from_utf8_lossy(&res.stderr).trim()
         );
     }
