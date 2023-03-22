@@ -117,19 +117,22 @@ fn main() -> Result<()> {
             to_install.push(entire);
 
             /*
-             * We need the SSH server in the switch zone for wicket.  In the
-             * ramdisk environment this comes along for the ride in the image
-             * templates we are presently using, even though it is otherwise
-             * optional in the entire metapackage.
+             * We need the SSH server in the switch zone for wicket, and chrony
+             * in the NTP zone.  In the ramdisk environment these come along for
+             * the ride in the image templates we are presently using, even
+             * though they are otherwise optional in the "entire" metapackage.
              *
              * Until zone image construction more completely interacts with the
              * packaging system in order to request specific chunks of software
-             * for inclusion in the image itself, we will include it in the
+             * for inclusion in the image itself, we will include them in the
              * baseline.
              */
             packages
                 .iter()
-                .filter(|p| p.name() == "network/openssh-server")
+                .filter(|p| {
+                    p.name() == "network/openssh-server"
+                        || p.name() == "service/network/chrony"
+                })
                 .cloned()
                 .for_each(|p| {
                     println!("install = {p}");
