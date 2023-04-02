@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use anyhow::{anyhow, bail, Result};
 
 pub fn argv(i: usize, m: &str) -> Result<String> {

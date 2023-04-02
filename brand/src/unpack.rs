@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use anyhow::{anyhow, bail, Result};
 use std::fs::File;
 use std::io::{Read, Seek};

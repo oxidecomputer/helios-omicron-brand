@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 

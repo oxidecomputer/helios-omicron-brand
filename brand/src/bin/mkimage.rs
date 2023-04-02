@@ -2,6 +2,10 @@
  * Copyright 2023 Oxide Computer Company
  */
 
+/*
+ * XXX This program is not finished.
+ */
+
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;

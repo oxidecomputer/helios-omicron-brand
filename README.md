@@ -1,6 +1,8 @@
 # helios-omicron-brand
 
-This repository contains the `omicron1` zone brand for Helios.
+This repository contains the `omicron1` zone brand for deployment of
+[Omicron](https://github.com/oxidecomputer/omicron) components running under
+[Helios](https://github.com/oxidecomputer/helios).
 
 <!-- MANUAL START -->
 ```
@@ -183,3 +185,10 @@ SEE ALSO
 illumos                     December 12, 2021                    illumos
 ```
 <!-- MANUAL END -->
+
+## Licence
+
+Copyright 2023 Oxide Computer Company
+
+Unless otherwise noted, all components are licenced under the [Mozilla Public
+License Version 2.0](./LICENSE).

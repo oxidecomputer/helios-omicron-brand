@@ -1,3 +1,7 @@
+/*
+ * Copyright 2023 Oxide Computer Company
+ */
+
 use anyhow::{bail, Result};
 use std::ffi::CString;
 use std::io::Write;

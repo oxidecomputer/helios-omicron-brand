@@ -167,30 +167,6 @@ fn cmd_query(_s: Stuff, args: &mut dyn Iterator<Item = &String>) -> Result<()> {
     Ok(())
 }
 
-// fn cmd_verify_adm(
-//     s: Stuff,
-//     args: &mut dyn Iterator<Item = &String>,
-// ) -> Result<()> {
-//     if let Some(discard) = args.next() {
-//         println!("VERIFY {:?}", discard);
-//     } else {
-//         bail!("expected arguments");
-//     }
-//
-//     let mut opts = getopts::Options::new();
-//     opts.parsing_style(getopts::ParsingStyle::StopAtFirstFree);
-//     opts.optflag("F", "", "force");
-//     let mat = opts.parse(args)?;
-//
-//     if !mat.free.is_empty() {
-//         bail!("unexpected arguments {:?}", mat.free);
-//     }
-//
-//     println!("INFO: verification is ok");
-//
-//     Ok(())
-// }
-
 fn cmd_verify_cfg(args: &mut dyn Iterator<Item = &String>) -> Result<()> {
     let mut opts = getopts::Options::new();
     opts.parsing_style(getopts::ParsingStyle::StopAtFirstFree);
@@ -241,17 +217,6 @@ fn cmd_install(
     let root = s.zoneroot();
     std::fs::DirBuilder::new().mode(0o755).create(&root)?;
     unix::lchown(&root, ROOT, ROOT)?;
-
-    // for name in ["dev", "tmp"] {
-    //     let dir = s.zonerootpath(&[name]);
-    //     std::fs::DirBuilder::new().mode(0o755).create(&dir)?;
-    //     unix::lchown(&dir, ROOT, SYS)?;
-    // }
-
-    //  {
-    //      let bin = s.zonerootpath(&["bin"]);
-    //      std::os::unix::fs::symlink("./usr/bin", &bin)?;
-    //  }
 
     for repl in ["usr", "lib", "sbin"] {
         let tree = format!("/{repl}");
@@ -360,7 +325,7 @@ fn main() -> Result<()> {
     opts.optopt("R", "", "zone path", "DIR");
 
     /*
-     * XXX log it alllll
+     * XXX Take this camera.  I want to document everything!
      */
     {
         let allargs = std::env::args().collect::<Vec<_>>();
@@ -382,7 +347,6 @@ fn main() -> Result<()> {
     match args.next().map(|x| x.as_str()) {
         Some("verify_cfg") => cmd_verify_cfg(&mut args),
         Some("verify_adm") => Ok(()),
-        //Some("verify_adm") => cmd_verify_adm(mkstuff(&mat)?, &mut args),
         Some("query") => cmd_query(mkstuff(&mat)?, &mut args),
         Some("install") => cmd_install(mkstuff(&mat)?, &mut args),
         Some("uninstall") => cmd_uninstall(mkstuff(&mat)?, &mut args),

@@ -14,7 +14,6 @@ pub fn unprefix(prefix: &Path, path: &Path) -> Result<PathBuf> {
     let cpath = path.components().collect::<Vec<_>>();
 
     if let Some(tail) = cpath.strip_prefix(cprefix.as_slice()) {
-        //let mut buf = PathBuf::from(tail);
         Ok(tail.iter().collect())
     } else {
         bail!("{:?} does not start with prefix {:?}", path, prefix);
@@ -67,7 +66,6 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
              * in the context of the zone, provided all of the replicated trees
              * are laid out in the usual locations.
              */
-            //println!("PATH: {:?}", ent.path());
             let target = reprefix(src, ent.path(), target)?;
             let linktarget = std::fs::read_link(ent.path())
                 .with_context(|| anyhow!("readlink({:?}", ent.path()))?;
@@ -77,7 +75,6 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
             std::os::unix::fs::symlink(&linktarget, &target).with_context(
                 || anyhow!("symlink {:?} -> {:?}", &target, &linktarget),
             )?;
-            //println!("TARG: {:?}", targ);
         } else if md.file_type().is_dir() {
             /*
              * Just create directories with the same ownership and permissions

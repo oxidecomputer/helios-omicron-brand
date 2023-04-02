@@ -2,15 +2,16 @@
 name = "helios-omicron-brand"
 version = "0.0.0"
 edition = "2021"
+license = "MPL-2.0"
 
 [dependencies]
-anyhow = "1.0.47"
-flate2 = "1.0.22"
-getopts = "0.2.21"
+anyhow = { workspace = true }
+flate2 = { workspace = true }
+getopts = { workspace = true }
 helios-build-utils = { path = "../utils" }
-libc = "0.2.108"
-serde = { version = "1.0.133", features = ["derive"] }
-serde_json = "1.0.74"
-tar = "0.4.37"
-tempfile = "3.2.0"
-walkdir = "2.3.2"
+libc = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tar = { workspace = true }
+tempfile = { workspace = true }
+walkdir = { workspace = true }

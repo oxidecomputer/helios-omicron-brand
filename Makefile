@@ -1,3 +1,7 @@
+#
+# Copyright 2023 Oxide Computer Company
+#
+
 TOP =		$(PWD)
 
 PUBLISHER =	helios-dev
@@ -121,6 +125,16 @@ pkgfmt: $(PACKAGES_0:%=pkgfmt.%)
 .PHONY: pkgfmt.%
 pkgfmt.%:
 	pkgfmt -f v2 $(@:pkgfmt.%=pkg/%.p5m)
+
+check-xml:
+	xmllint --dtdvalid /usr/share/lib/xml/dtd/brand.dtd.1  \
+	    config/config.xml
+	xmllint --dtdvalid /usr/share/lib/xml/dtd/zone_platform.dtd.1 \
+	    config/platform.xml
+	xmllint --dtdvalid /usr/share/lib/xml/dtd/service_bundle.dtd.1 \
+	    config/profile.xml
+	xmllint --dtdvalid /usr/share/lib/xml/dtd/service_bundle.dtd.1 \
+	    smf/baseline.xml
 
 clean:
 	rm -rf $(PROTO)
