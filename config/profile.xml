@@ -20,6 +20,15 @@
     </service>
 
 <!--
+    Disable the dns/client service by default. Most Omicron zones do not need
+    this and those that do will configure and then enable it as part of
+    service setup:
+-->
+    <service name='network/dns/client' version='1' type='service'>
+        <instance name='default' enabled='false' />
+    </service>
+
+<!--
     Disable any other services that we do not expect to need within an Omicron
     zone:
 -->
