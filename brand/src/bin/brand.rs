@@ -282,6 +282,17 @@ fn cmd_install(
         extra.unpack(&root)?;
     }
 
+    /*
+     * Copy in configuration files from the global zone.
+     */
+    for cf in ["default/init"] {
+        let src = format!("/etc/{cf}");
+        println!("INFO: omicron: copying {src}...");
+        let dst = s.zonerootpath(&["etc", cf]);
+        std::fs::remove_file(&dst).ok();
+        std::fs::copy(src, dst)?;
+    }
+
     println!("INFO: omicron: install complete, probably!");
 
     Ok(())
