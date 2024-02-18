@@ -1,9 +1,11 @@
 /*
- * Copyright 2023 Oxide Computer Company
+ * Copyright 2024 Oxide Computer Company
  */
 
 use anyhow::{anyhow, bail, Context, Result};
 use std::path::{Path, PathBuf};
+
+use crate::copyq::{CopyQueue, CopyStats};
 
 pub fn unprefix(prefix: &Path, path: &Path) -> Result<PathBuf> {
     if prefix.is_absolute() != path.is_absolute() {
@@ -38,7 +40,7 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
     src: S,
     target: T,
     prefix: &str,
-) -> Result<()> {
+) -> Result<CopyStats> {
     let src = src.as_ref();
     let target = target.as_ref();
 
@@ -51,6 +53,8 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
     if !prefix.starts_with('/') {
         bail!("prefix must be absolute");
     }
+
+    let cq = CopyQueue::new(16)?;
 
     let walk = walkdir::WalkDir::new(src).same_file_system(true);
     let mut walk = walk.into_iter();
@@ -133,15 +137,17 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
                  * XXX Copy the analogous file to the prefix tree:
                  */
                 let target = reprefix(src, ent.path(), target)?;
-                std::fs::remove_file(&target).ok();
-                std::fs::copy(ent.path(), &target).with_context(|| {
-                    anyhow!("copy {:?} -> {:?}", ent.path(), &target)
-                })?;
+
+                /*
+                 * Push the copy task onto the work queue and move on to the
+                 * next file.
+                 */
+                cq.push_copy(ent.path().into(), target);
             }
         } else {
             bail!("special file? {:?}", ent.path());
         }
     }
 
-    Ok(())
+    Ok(cq.join()?)
 }
