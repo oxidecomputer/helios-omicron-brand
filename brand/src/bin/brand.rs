@@ -1,11 +1,12 @@
 /*
- * Copyright 2023 Oxide Computer Company
+ * Copyright 2024 Oxide Computer Company
  */
 
 use std::io::{Read, Write};
 use std::os::unix::fs::DirBuilderExt;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::Instant;
 
 use anyhow::{anyhow, bail, Result};
 
@@ -221,10 +222,20 @@ fn cmd_install(
     for repl in ["usr", "lib", "sbin"] {
         let tree = format!("/{repl}");
         println!("INFO: omicron: replicating {tree} tree...");
+
         let dir = s.zonerootpath(&[repl]);
         std::fs::DirBuilder::new().mode(0o755).create(&dir)?;
         unix::lchown(&dir, ROOT, SYS)?;
-        tree::replicate(&tree, &dir, &format!("/system/{repl}"))?;
+
+        let start = Instant::now();
+        let copyq::CopyStats { files, bytes } =
+            tree::replicate(&tree, &dir, &format!("/system/{repl}"))?;
+        let msec = Instant::now().saturating_duration_since(start).as_millis();
+
+        println!(
+            "INFO: omicron: replicated {tree}: \
+            {files} files, {bytes}, bytes, {msec} msec"
+        );
     }
 
     {
