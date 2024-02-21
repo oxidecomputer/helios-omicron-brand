@@ -3,6 +3,8 @@
  */
 
 use anyhow::{anyhow, bail, Context, Result};
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use crate::copyq::{CopyQueue, CopyStats};
@@ -31,6 +33,46 @@ pub fn reprefix(prefix: &Path, path: &Path, target: &Path) -> Result<PathBuf> {
     Ok(newpath)
 }
 
+fn read_parallelism() -> Result<usize> {
+    let file_path = "/tmp/.omicron.parallelism";
+
+    let mut file = match File::open(file_path) {
+        Ok(file) => file,
+        _ => {
+            return Ok(16);
+        }
+    };
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let parallelism: usize = contents
+        .trim()
+        .parse()
+        .expect("parallelism contents is invalid");
+
+    Ok(parallelism)
+}
+
+fn read_batch() -> Result<usize> {
+    let file_path = "/tmp/.omicron.batch";
+
+    let mut file = match File::open(file_path) {
+        Ok(file) => file,
+        _ => {
+            return Ok(16);
+        }
+    };
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let batch: usize =
+        contents.trim().parse().expect("batch contents is invalid");
+
+    Ok(batch)
+}
+
 /**
  * Replicate "src" (e.g., "/usr") as a tree of symlinks rooted at "target"
  * (e.g., "/zone/root/usr") where each link will point at the lofs file system
@@ -54,7 +96,7 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
         bail!("prefix must be absolute");
     }
 
-    let cq = CopyQueue::new(16)?;
+    let mut cq = CopyQueue::new(read_parallelism()?, read_batch()?)?;
 
     let walk = walkdir::WalkDir::new(src).same_file_system(true);
     let mut walk = walk.into_iter();
@@ -70,15 +112,9 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
              * in the context of the zone, provided all of the replicated trees
              * are laid out in the usual locations.
              */
+
             let target = reprefix(src, ent.path(), target)?;
-            let linktarget = std::fs::read_link(ent.path())
-                .with_context(|| anyhow!("readlink({:?}", ent.path()))?;
-            /*
-             * XXX remove first...
-             */
-            std::os::unix::fs::symlink(&linktarget, &target).with_context(
-                || anyhow!("symlink {:?} -> {:?}", &target, &linktarget),
-            )?;
+            cq.push_relative_link(ent.path().into(), target);
         } else if md.file_type().is_dir() {
             /*
              * Just create directories with the same ownership and permissions
@@ -123,15 +159,7 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
                 linktarget
                     .push_str(unprefix(src, ent.path())?.to_str().unwrap());
 
-                std::os::unix::fs::symlink(&linktarget, &target).with_context(
-                    || {
-                        anyhow!(
-                            "file symlink {:?} -> {:?}",
-                            &target,
-                            &linktarget
-                        )
-                    },
-                )?;
+                cq.push_absolute_link(linktarget, target);
             } else {
                 /*
                  * XXX Copy the analogous file to the prefix tree:
