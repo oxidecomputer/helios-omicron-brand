@@ -1,5 +1,5 @@
 #
-# Copyright 2023 Oxide Computer Company
+# Copyright 2024 Oxide Computer Company
 #
 
 TOP =		$(PWD)
@@ -14,10 +14,12 @@ BRAND =		omicron1
 BRANDDIR =	usr/lib/brand/$(BRAND)
 MAN7DIR =	usr/share/man/man7
 SMFDIR =	lib/svc/manifest/system/omicron
+DEFDIR =	etc/default
 
 DIRS_0 =	$(BRANDDIR) \
 		$(MAN7DIR) \
-		$(SMFDIR)
+		$(SMFDIR) \
+		$(DEFDIR)
 DIRS =		$(DIRS_0:%=$(PROTO)/%)
 
 SMF_0 =		baseline.xml
@@ -34,6 +36,9 @@ XML_0 =		config.xml \
 		platform.xml
 XML =		$(XML_0:%=$(PROTO)/$(BRANDDIR)/%)
 
+DEFAULTS_0 =	helios-omicron1
+DEFAULTS =	$(DEFAULTS_0:%=$(PROTO)/$(DEFDIR)/%)
+
 PACKAGES_0 =	brand \
 		baseline \
 		incorporation
@@ -42,7 +47,7 @@ PACKAGES =	$(PACKAGES_0:%=pkg.%)
 COMMIT_COUNT =	$(shell git rev-list --count HEAD)
 
 .PHONY: all
-all: $(DIRS) $(BINS) $(MAN7) $(SMF) $(XML)
+all: $(DIRS) $(BINS) $(MAN7) $(SMF) $(XML) $(DEFAULTS)
 
 .PHONY: package
 package: all $(PKGDIR) $(PACKAGES)
@@ -93,6 +98,10 @@ $(PROTO)/$(SMFDIR)/%: smf/%
 	cp $< $@
 
 $(PROTO)/$(BRANDDIR)/%.xml: config/%.xml
+	@rm -f $@
+	cp $< $@
+
+$(PROTO)/$(DEFDIR)/%: config/%
 	@rm -f $@
 	cp $< $@
 

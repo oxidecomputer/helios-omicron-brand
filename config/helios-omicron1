@@ -1,0 +1,21 @@
+#
+# Copyright 2024 Oxide Computer Company
+#
+
+#
+# This file contains various tuning settings used by various Helios "omicron1"
+# brand tools that may be useful to override during experiments.  The format of
+# this file is not a Committed interface, and it is not expected that end users
+# or customers will need to alter it.
+#
+
+#
+# How many writer threads should we use when copying from the root file
+# system to a new zone root?
+#
+COPY_THREADS=16
+
+#
+# What batch size should the writer thread queue use?
+#
+COPY_BATCH=32

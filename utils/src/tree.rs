@@ -8,6 +8,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use crate::copyq::{CopyQueue, CopyStats};
+use crate::defaults::DefaultsFile;
 
 pub fn unprefix(prefix: &Path, path: &Path) -> Result<PathBuf> {
     if prefix.is_absolute() != path.is_absolute() {
@@ -33,46 +34,6 @@ pub fn reprefix(prefix: &Path, path: &Path, target: &Path) -> Result<PathBuf> {
     Ok(newpath)
 }
 
-fn read_parallelism() -> Result<usize> {
-    let file_path = "/tmp/.omicron.parallelism";
-
-    let mut file = match File::open(file_path) {
-        Ok(file) => file,
-        _ => {
-            return Ok(16);
-        }
-    };
-
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-
-    let parallelism: usize = contents
-        .trim()
-        .parse()
-        .expect("parallelism contents is invalid");
-
-    Ok(parallelism)
-}
-
-fn read_batch() -> Result<usize> {
-    let file_path = "/tmp/.omicron.batch";
-
-    let mut file = match File::open(file_path) {
-        Ok(file) => file,
-        _ => {
-            return Ok(16);
-        }
-    };
-
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-
-    let batch: usize =
-        contents.trim().parse().expect("batch contents is invalid");
-
-    Ok(batch)
-}
-
 /**
  * Replicate "src" (e.g., "/usr") as a tree of symlinks rooted at "target"
  * (e.g., "/zone/root/usr") where each link will point at the lofs file system
@@ -96,7 +57,12 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
         bail!("prefix must be absolute");
     }
 
-    let mut cq = CopyQueue::new(read_parallelism()?, read_batch()?)?;
+    let df = DefaultsFile::from_path("/etc/default/helios-omicron1")?;
+
+    let mut cq = CopyQueue::new(
+        df.get_usize("COPY_THREADS").unwrap_or(16),
+        df.get_usize("COPY_BATCH").unwrap_or(32),
+    )?;
 
     let walk = walkdir::WalkDir::new(src).same_file_system(true);
     let mut walk = walk.into_iter();
