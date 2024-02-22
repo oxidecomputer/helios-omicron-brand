@@ -3,8 +3,6 @@
  */
 
 use anyhow::{anyhow, bail, Context, Result};
-use std::fs::File;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use crate::copyq::{CopyQueue, CopyStats};
