@@ -235,7 +235,7 @@ fn cmd_install(
          */
         println!("INFO: omicron: pruning SMF manifests...");
         let manifest = s.zonerootpath(&["lib", "svc", "manifest"]);
-        std::fs::remove_dir_all(&manifest)?;
+        std::fs::remove_dir_all(manifest)?;
     }
 
     /*

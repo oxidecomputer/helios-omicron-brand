@@ -132,15 +132,12 @@ fn main() -> Result<()> {
                 .iter()
                 .filter(|p| p.name() == "entire")
                 .collect::<Vec<_>>();
-            let entire = if entire.len() > 1 {
-                bail!(
-                    "could not find optional entire package, got {:?}",
-                    entire
-                );
-            } else if entire.len() == 1 {
-                entire[0].clone()
-            } else {
-                ips::Package::new_bare_version("entire", "latest")
+            let entire = match entire.as_slice() {
+                [] => ips::Package::new_bare_version("entire", "latest"),
+                [one] => (*one).clone(),
+                many => bail!(
+                    "could not find optional entire package, got {many:?}"
+                ),
             };
 
             println!("entire = {entire}");
@@ -351,7 +348,7 @@ fn main() -> Result<()> {
             .create(true)
             .truncate(true)
             .write(true)
-            .open(&our_profile)?;
+            .open(our_profile)?;
         writeln!(f, "{}", include_str!("../../../config/profile.xml"))?;
         f.flush()?;
         f.sync_all()?;
@@ -390,14 +387,14 @@ fn main() -> Result<()> {
         f.push("passwd");
         f
     };
-    let passwd = unix::Passwd::load(&passwdf)?;
+    let passwd = unix::Passwd::load(passwdf)?;
     let groupf = {
         let mut f = root.clone();
         f.push("etc");
         f.push("group");
         f
     };
-    let group = unix::Group::load(&groupf)?;
+    let group = unix::Group::load(groupf)?;
 
     let out_tar = {
         let mut f = dir.clone();
