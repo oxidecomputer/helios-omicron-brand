@@ -214,6 +214,7 @@ pub struct ActionDepend {
     fmri: Vec<Package>,
     type_: DependType,
     predicate: Vec<String>,
+    debug: Option<String>,
 }
 
 impl ActionDepend {
@@ -227,6 +228,10 @@ impl ActionDepend {
 
     pub fn type_(&self) -> DependType {
         self.type_
+    }
+
+    pub fn debug(&self) -> Option<&String> {
+        self.debug.as_ref()
     }
 }
 
@@ -527,6 +532,7 @@ pub fn parse_manifest(input: &str) -> Result<Vec<Action>> {
                     .collect::<Result<Vec<_>>>()?;
                 let type_ = vals.single("type")?.try_into()?;
                 let predicate = vals.maybe_list("predicate");
+                let debug = vals.maybe_single("variant.debug.illumos")?;
                 /*
                  * XXX Ignore...
                  */
@@ -538,6 +544,7 @@ pub fn parse_manifest(input: &str) -> Result<Vec<Action>> {
                     fmri,
                     type_,
                     predicate,
+                    debug,
                 })
             }
             "dir" => {
