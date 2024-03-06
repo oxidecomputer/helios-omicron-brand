@@ -191,9 +191,9 @@ pub struct Action {
     kind: ActionKind,
     #[allow(unused)]
     vals: Vals,
-    variant_zone: Option<String>,
+    variants: Vec<(String, String)>,
     #[allow(unused)]
-    variant_imagetype: Option<String>,
+    facets: Vec<(String, String)>,
 }
 
 impl Action {
@@ -202,9 +202,10 @@ impl Action {
     }
 
     pub fn gz_only(&self) -> bool {
-        self.variant_zone
-            .as_deref()
-            .map(|zone| zone == "global")
+        self.variants
+            .iter()
+            .find(|(k, _)| k == "opensolaris.zone")
+            .map(|(_, zone)| zone == "global")
             .unwrap_or_default()
     }
 }
@@ -314,13 +315,6 @@ impl Vals {
     }
 
     fn insert(&mut self, key: &str, value: &str) {
-        /*
-         * XXX Ignore "facet.*" properties for now...
-         */
-        if key.starts_with("facet.") {
-            return;
-        }
-
         self.vals.push((key.to_string(), value.to_string()));
         self.extra.insert(key.to_string());
     }
@@ -364,6 +358,21 @@ impl Vals {
         }
 
         self.extra.remove(name);
+        out
+    }
+
+    fn all_with_prefix(&mut self, prefix: &str) -> Vec<(String, String)> {
+        let mut out: Vec<(String, String)> = Vec::new();
+
+        for (k, v) in self.vals.iter() {
+            if let Some(suffix) = k.strip_prefix(prefix) {
+                if !suffix.is_empty() {
+                    self.extra.remove(k);
+                    out.push((suffix.to_string(), v.to_string()));
+                }
+            }
+        }
+
         out
     }
 
@@ -508,9 +517,8 @@ pub fn parse_manifest(input: &str) -> Result<Vec<Action>> {
             _ => bail!("invalid line (terminal state {:?}: {}", s, l),
         }
 
-        let variant_zone = vals.maybe_single("variant.opensolaris.zone")?;
-        let variant_imagetype =
-            vals.maybe_single("variant.opensolaris.imagetype")?;
+        let variants = vals.all_with_prefix("variant.");
+        let facets = vals.all_with_prefix("facet.");
         let kind = match a.as_str() {
             "set" => {
                 let name = vals.single("name")?;
@@ -595,8 +603,8 @@ pub fn parse_manifest(input: &str) -> Result<Vec<Action>> {
         out.push(Action {
             kind,
             vals,
-            variant_zone,
-            variant_imagetype,
+            variants,
+            facets,
         });
     }
 
