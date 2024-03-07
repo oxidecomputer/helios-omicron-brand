@@ -127,18 +127,31 @@ pkgfmt: $(PACKAGES_0:%=pkgfmt.%)
 pkgfmt.%:
 	pkgfmt -f v2 $(@:pkgfmt.%=pkg/%.p5m)
 
+.PHONY: check-xml
 check-xml:
-	xmllint --dtdvalid /usr/share/lib/xml/dtd/brand.dtd.1  \
-	    config/config.xml
+	xmllint --dtdvalid /usr/share/lib/xml/dtd/brand.dtd.1 \
+	    config/config.xml >/dev/null
 	xmllint --dtdvalid /usr/share/lib/xml/dtd/zone_platform.dtd.1 \
-	    config/platform.xml
+	    config/platform.xml >/dev/null
 	xmllint --dtdvalid /usr/share/lib/xml/dtd/service_bundle.dtd.1 \
-	    config/profile.xml
+	    config/profile.xml >/dev/null
 	xmllint --dtdvalid /usr/share/lib/xml/dtd/service_bundle.dtd.1 \
-	    smf/baseline.xml
+	    smf/baseline.xml >/dev/null
 
+.PHONY: check-pkg
+check-pkg: $(PACKAGES_0:%=check-pkg.%)
+
+.PHONY: check-pkg.%
+check-pkg.%:
+	pkgfmt -c -f v2 $(@:check-pkg.%=pkg/%.p5m)
+
+.PHONY: check
+check: check-xml check-pkg
+
+.PHONY: clean
 clean:
 	rm -rf $(PROTO)
 
+.PHONY: clobber
 clobber: clean
 	rm -rf $(PKGDIR)
