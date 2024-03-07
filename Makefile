@@ -35,7 +35,8 @@ XML_0 =		config.xml \
 XML =		$(XML_0:%=$(PROTO)/$(BRANDDIR)/%)
 
 PACKAGES_0 =	brand \
-		baseline
+		baseline \
+		incorporation
 PACKAGES =	$(PACKAGES_0:%=pkg.%)
 
 COMMIT_COUNT =	$(shell git rev-list --count HEAD)

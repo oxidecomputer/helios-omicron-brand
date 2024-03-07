@@ -1,12 +1,13 @@
 #
-# Copyright 2023 Oxide Computer Company
+# Copyright 2024 Oxide Computer Company
 #
 
 #
 # These files only make sense in the global zone:
 #
 <transform dir file link hardlink -> default variant.opensolaris.zone global>
-set name=pkg.fmri value=pkg://%PUBLISHER%/system/zones/brand/omicron1@1.0.%COMMIT_COUNT%
+set name=pkg.fmri \
+    value=pkg://%PUBLISHER%/system/zones/brand/omicron1@1.0.%COMMIT_COUNT%
 set name=pkg.summary value="Oxide omicron1 brand support"
 set name=info.classification \
     value=org.opensolaris.category.2008:System/Virtualization
@@ -23,3 +24,5 @@ dir  path=usr/share owner=root group=sys mode=0755
 dir  path=usr/share/man owner=root group=bin mode=0755
 dir  path=usr/share/man/man7 owner=root group=bin mode=0755
 file path=usr/share/man/man7/omicron1.7 owner=root group=bin mode=0444
+depend type=require \
+    fmri=pkg:/consolidation/oxide/omicron1-brand-incorporation@1.0.%COMMIT_COUNT%

@@ -1,0 +1,13 @@
+#
+# Copyright 2024 Oxide Computer Company
+#
+
+set name=pkg.fmri \
+    value=pkg://%PUBLISHER%/consolidation/oxide/omicron1-brand-incorporation@1.0.%COMMIT_COUNT%
+set name=pkg.summary value="Incorporation to constrain omicron1 brand version"
+set name=info.classification \
+    value="org.opensolaris.category.2008:Meta Packages/Incorporations"
+set name=variant.opensolaris.zone value=global value=nonglobal
+depend type=incorporate \
+    fmri=pkg:/system/zones/brand/omicron1/tools@1.0.%COMMIT_COUNT%
+depend type=incorporate fmri=pkg:/system/zones/brand/omicron1@1.0.%COMMIT_COUNT%
