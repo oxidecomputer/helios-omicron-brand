@@ -12,6 +12,10 @@ set name=pkg.summary value="Oxide omicron1 brand support"
 set name=info.classification \
     value=org.opensolaris.category.2008:System/Virtualization
 set name=variant.opensolaris.zone value=global value=nonglobal
+dir  path=etc owner=root group=sys mode=0755
+dir  path=etc/default owner=root group=sys mode=0755
+file path=etc/default/helios-omicron1 owner=root group=bin mode=0644 \
+    preserve=true
 dir  path=usr owner=root group=sys mode=0755
 dir  path=usr/lib owner=root group=bin mode=0755
 dir  path=usr/lib/brand owner=root group=bin mode=0755

@@ -1,9 +1,12 @@
 /*
- * Copyright 2023 Oxide Computer Company
+ * Copyright 2024 Oxide Computer Company
  */
 
 use anyhow::{anyhow, bail, Context, Result};
 use std::path::{Path, PathBuf};
+
+use crate::copyq::{CopyQueue, CopyStats};
+use crate::defaults::DefaultsFile;
 
 pub fn unprefix(prefix: &Path, path: &Path) -> Result<PathBuf> {
     if prefix.is_absolute() != path.is_absolute() {
@@ -38,7 +41,7 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
     src: S,
     target: T,
     prefix: &str,
-) -> Result<()> {
+) -> Result<CopyStats> {
     let src = src.as_ref();
     let target = target.as_ref();
 
@@ -51,6 +54,13 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
     if !prefix.starts_with('/') {
         bail!("prefix must be absolute");
     }
+
+    let df = DefaultsFile::from_path("/etc/default/helios-omicron1")?;
+
+    let mut cq = CopyQueue::new(
+        df.get_usize("COPY_THREADS").unwrap_or(8),
+        df.get_usize("COPY_BATCH").unwrap_or(128),
+    )?;
 
     let walk = walkdir::WalkDir::new(src).same_file_system(true);
     let mut walk = walk.into_iter();
@@ -66,15 +76,9 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
              * in the context of the zone, provided all of the replicated trees
              * are laid out in the usual locations.
              */
+
             let target = reprefix(src, ent.path(), target)?;
-            let linktarget = std::fs::read_link(ent.path())
-                .with_context(|| anyhow!("readlink({:?}", ent.path()))?;
-            /*
-             * XXX remove first...
-             */
-            std::os::unix::fs::symlink(&linktarget, &target).with_context(
-                || anyhow!("symlink {:?} -> {:?}", &target, &linktarget),
-            )?;
+            cq.push_relative_link(ent.path().into(), target);
         } else if md.file_type().is_dir() {
             /*
              * Just create directories with the same ownership and permissions
@@ -119,29 +123,23 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
                 linktarget
                     .push_str(unprefix(src, ent.path())?.to_str().unwrap());
 
-                std::os::unix::fs::symlink(&linktarget, &target).with_context(
-                    || {
-                        anyhow!(
-                            "file symlink {:?} -> {:?}",
-                            &target,
-                            &linktarget
-                        )
-                    },
-                )?;
+                cq.push_absolute_link(linktarget, target);
             } else {
                 /*
                  * XXX Copy the analogous file to the prefix tree:
                  */
                 let target = reprefix(src, ent.path(), target)?;
-                std::fs::remove_file(&target).ok();
-                std::fs::copy(ent.path(), &target).with_context(|| {
-                    anyhow!("copy {:?} -> {:?}", ent.path(), &target)
-                })?;
+
+                /*
+                 * Push the copy task onto the work queue and move on to the
+                 * next file.
+                 */
+                cq.push_copy(ent.path().into(), target);
             }
         } else {
             bail!("special file? {:?}", ent.path());
         }
     }
 
-    Ok(())
+    Ok(cq.join()?)
 }
