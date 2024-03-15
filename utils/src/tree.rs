@@ -58,8 +58,8 @@ pub fn replicate<S: AsRef<Path>, T: AsRef<Path>>(
     let df = DefaultsFile::from_path("/etc/default/helios-omicron1")?;
 
     let mut cq = CopyQueue::new(
-        df.get_usize("COPY_THREADS").unwrap_or(16),
-        df.get_usize("COPY_BATCH").unwrap_or(32),
+        df.get_usize("COPY_THREADS").unwrap_or(8),
+        df.get_usize("COPY_BATCH").unwrap_or(128),
     )?;
 
     let walk = walkdir::WalkDir::new(src).same_file_system(true);

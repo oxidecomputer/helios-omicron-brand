@@ -13,9 +13,9 @@
 # How many writer threads should we use when copying from the root file
 # system to a new zone root?
 #
-COPY_THREADS=16
+COPY_THREADS=8
 
 #
 # What batch size should the writer thread queue use?
 #
-COPY_BATCH=32
+COPY_BATCH=128
