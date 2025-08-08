@@ -1,11 +1,12 @@
 /*
- * Copyright 2023 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use anyhow::{bail, Result};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::convert::{TryFrom, TryInto};
 use std::fmt::Display;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Package {
@@ -187,13 +188,31 @@ impl Display for DependType {
     }
 }
 
+#[derive(Debug)]
 pub struct Action {
     kind: ActionKind,
-    #[allow(unused)]
+    #[expect(unused)]
     vals: Vals,
     variants: Vec<(String, String)>,
-    #[allow(unused)]
-    facets: Vec<(String, String)>,
+    facets: Vec<(String, FacetValue)>,
+}
+
+#[derive(Debug)]
+pub enum FacetValue {
+    True,
+    All,
+}
+
+impl FromStr for FacetValue {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(match s.to_ascii_lowercase().as_str() {
+            "true" => FacetValue::True,
+            "all" => FacetValue::All,
+            other => bail!("invalid facet value: {other:}"),
+        })
+    }
 }
 
 impl Action {
@@ -207,6 +226,70 @@ impl Action {
             .find(|(k, _)| k == "opensolaris.zone")
             .map(|(_, zone)| zone == "global")
             .unwrap_or_default()
+    }
+
+    pub fn enabled_by_facets(
+        &self,
+        image_facets: &BTreeMap<String, bool>,
+    ) -> bool {
+        /*
+         * As per pkg(7), an action is installed if:
+         *
+         *      - no facet tags are present
+         *
+         *      - facet tags are present, and:
+         *
+         *          - all facet tags that have the value "all" are true in the
+         *            image
+         *
+         *          - if any facet tag has the value "true", at least one of
+         *            those facets is also true in the image
+         */
+        let mut alls: BTreeSet<&String> = Default::default();
+        let mut trues: BTreeSet<&String> = Default::default();
+
+        for (f, v) in self.facets.iter() {
+            match v {
+                FacetValue::True => trues.insert(f),
+                FacetValue::All => alls.insert(f),
+            };
+        }
+
+        if alls.is_empty() && trues.is_empty() {
+            /*
+             * If there are no facets listed on the action, it defaults to being
+             * installed.
+             */
+            return true;
+        }
+
+        for a in alls {
+            if !*image_facets
+                .get(a)
+                .expect(&format!("facet {a:?} missing from image?"))
+            {
+                return false;
+            }
+        }
+
+        if trues.is_empty() {
+            return true;
+        }
+
+        for t in trues {
+            if *image_facets
+                .get(t)
+                .expect(&format!("facet {t:?} missing from image?"))
+            {
+                /*
+                 * Only one matching facet is required amongst those listed
+                 * on the package as "true".
+                 */
+                return true;
+            }
+        }
+
+        false
     }
 }
 
@@ -518,7 +601,12 @@ pub fn parse_manifest(input: &str) -> Result<Vec<Action>> {
         }
 
         let variants = vals.all_with_prefix("variant.");
-        let facets = vals.all_with_prefix("facet.");
+        let facets = vals
+            .all_with_prefix("facet.")
+            .into_iter()
+            .map(|(f, v)| Ok((f, FacetValue::from_str(&v)?)))
+            .collect::<Result<Vec<(String, FacetValue)>>>()?;
+
         let kind = match a.as_str() {
             "set" => {
                 let name = vals.single("name")?;
