@@ -1,11 +1,13 @@
 /*
- * Copyright 2023 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{bail, Result};
+use serde::Deserialize;
 
 use helios_build_utils::ips;
 
@@ -140,6 +142,50 @@ pub fn pkg_list<P: AsRef<Path>>(image: Option<P>) -> Result<Vec<ips::Package>> {
     } else {
         bail!(
             "pkg list error: {:?}",
+            String::from_utf8_lossy(&res.stderr).trim()
+        );
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[expect(unused)]
+struct FacetDescription {
+    facet: String,
+    masked: String,
+    src: String,
+    value: String,
+}
+
+pub fn pkg_facets<P: AsRef<Path>>(
+    image: Option<P>,
+) -> Result<BTreeMap<String, bool>> {
+    let mut cmd = pkg(image, "facet");
+    cmd.arg("-aH");
+    cmd.arg("-F").arg("json");
+
+    let res = cmd.output()?;
+
+    if res.status.success() {
+        let fds: Vec<FacetDescription> = serde_json::from_slice(&res.stdout)?;
+        Ok(fds
+            .into_iter()
+            .map(|fd| {
+                assert_eq!(fd.masked, "False");
+
+                (
+                    fd.facet.strip_prefix("facet.").unwrap().to_string(),
+                    if fd.value == "True" {
+                        true
+                    } else {
+                        assert_eq!(fd.value, "False");
+                        false
+                    },
+                )
+            })
+            .collect())
+    } else {
+        bail!(
+            "pkg facet error: {:?}",
             String::from_utf8_lossy(&res.stderr).trim()
         );
     }

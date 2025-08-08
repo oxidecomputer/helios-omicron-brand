@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -408,6 +408,17 @@ fn main() -> Result<()> {
     };
 
     /*
+     * Get a dictionary of all known facets and their current values.  We need
+     * this to correctly exclude optional files that would not be installed due
+     * to an image-level facet specification.
+     */
+    println!("loading facet selections...");
+    let facets = pkg::pkg_facets(im)?;
+    for (f, v) in facets.iter() {
+        println!("    {f} -> {v}");
+    }
+
+    /*
      * Load the canonical list of packaged files from the image, including the
      * owner and group and mode bits.  We will use this metadata when creating
      * the tar file.  We will also use it to detect and handle files added to
@@ -444,6 +455,11 @@ fn main() -> Result<()> {
             _ => continue,
         };
         let path = path.trim_start_matches('/').to_string();
+
+        if !a.enabled_by_facets(&facets) {
+            println!("    skipping: {path:?} (facets)");
+            continue;
+        }
 
         /*
          * Entries for the same path may end up several times in the full
