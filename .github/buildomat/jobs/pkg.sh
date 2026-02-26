@@ -2,7 +2,7 @@
 #:
 #: name = "pkg"
 #: variety = "basic"
-#: target = "helios-2.0-20240204"
+#: target = "helios-3.0"
 #: rust_toolchain = "stable"
 #: output_rules = [
 #:	"=/out/omicron-brand.p5p",
