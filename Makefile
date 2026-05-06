@@ -1,10 +1,10 @@
 #
-# Copyright 2024 Oxide Computer Company
+# Copyright 2026 Oxide Computer Company
 #
 
 TOP =		$(PWD)
 
-PUBLISHER =	helios-dev
+PUBLISHER =	helios
 
 PROTO =		$(TOP)/proto
 PKGDIR =	$(TOP)/packages
@@ -44,6 +44,10 @@ PACKAGES_0 =	brand \
 		incorporation
 PACKAGES =	$(PACKAGES_0:%=pkg.%)
 
+HELIOS_RELEASE = $(or \
+    $(shell awk -F= '/^VERSION=/{print $$2}' /etc/os-release), \
+    2)
+CVER = 0
 COMMIT_COUNT =	$(shell git rev-list --count HEAD)
 
 .PHONY: all
@@ -61,6 +65,8 @@ $(PKGDIR)/%.base.p5m: pkg/%.p5m | $(PKGDIR)
 	@rm -f $@
 	sed -e 's/%PUBLISHER%/$(PUBLISHER)/g' \
 	    -e 's/%COMMIT_COUNT%/$(COMMIT_COUNT)/g' \
+	    -e 's/%HELIOS_RELEASE%/$(HELIOS_RELEASE)/g' \
+	    -e 's/%CVER%/$(CVER)/g' \
 	    $< | pkgmogrify -v -O $@
 
 .PRECIOUS: $(PKGDIR)/%.generate.p5m
