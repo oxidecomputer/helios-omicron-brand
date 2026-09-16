@@ -38,6 +38,7 @@
     <prestatechange>/usr/lib/brand/omicron1/brand -z %z -R %R prestatechange</prestatechange>
     <poststatechange>/usr/lib/brand/omicron1/brand -z %z -R %R poststatechange</poststatechange>
     <query>/usr/lib/brand/omicron1/brand -z %z -R %R query</query>
+    <security-flags>aslr,noexecstack</security-flags>
 
 <!--
     Use the same privileges as a "sparse" brand zone for now:
